@@ -16,11 +16,13 @@ public class BotMussurana : AIBehaviour
     private List<GameObject> _orbsList = new List<GameObject>();
     private State _currentState = State.WANDER;
     private Transform _targetObject;
+    private Transform _enemyObject;
+    private Vector3 _moveDirection;
 
     public override void Init(GameObject own, SnakeMovement ownMove)
     {
         base.Init(own, ownMove);
-        ownerMovement.StartCoroutine(UpdateDirEveryXSeconds(timeChangeDir));
+        _moveDirection = Camera.main.ScreenToWorldPoint(Input.mousePosition);
     }
 
     //seria interessante ter um controlador com o colisor que define o mundo pra poder gerar pontos dentro desse colisor
@@ -53,7 +55,7 @@ public class BotMussurana : AIBehaviour
         {
             if(collider.tag == "Body")
             {
-                if(Vector3.Distance(collider.gameObject.transform.position, owner.transform.position) < 1f)
+                if(owner.gameObject.transform.parent != collider.gameObject.transform.parent)
                 {
                     _opponentsList.Add(collider.gameObject);
                 }
@@ -67,7 +69,12 @@ public class BotMussurana : AIBehaviour
 
     private void BotController()
     {
-        owner.transform.position = Vector2.MoveTowards(owner.transform.position, _targetObject.transform.position, ownerMovement.speed * Time.deltaTime);
+        owner.transform.position = Vector2.MoveTowards(owner.transform.position, _moveDirection, ownerMovement.speed * Time.deltaTime);
+
+        if(IsInDanger())
+        {
+            Run();
+        }
 
         if(_currentState == State.WANDER)
         {
@@ -80,6 +87,36 @@ public class BotMussurana : AIBehaviour
         {
             VerifyTarget();
         }
+        else if(_currentState == State.IDLE)
+        {
+            _currentState = State.WANDER;
+            _moveDirection = _moveDirection = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        }
+
+    }
+
+    private void Run()
+    {
+        Debug.Log("RUN");
+
+        Vector3 vector = _enemyObject.gameObject.transform.position - owner.transform.position;
+        _moveDirection = -vector;
+        Debug.DrawRay(owner.transform.position , -vector, Color.blue, 1);
+        //_currentState = State.RUNNING;
+    }
+
+    private bool IsInDanger()
+    {
+        foreach(GameObject opponent in _opponentsList)
+        {
+            if(Vector3.Distance(opponent.transform.position, owner.transform.position) < 8)
+            {
+                _enemyObject = opponent.gameObject.transform;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void GetOrb()
@@ -107,6 +144,7 @@ public class BotMussurana : AIBehaviour
         direction = nearestOrb.gameObject.transform.position - owner.transform.position;
         direction.z = 0.0f;
         _targetObject = nearestOrb.transform;
+        _moveDirection = _targetObject.transform.position;
         _currentState = State.EATING;
     }
 
@@ -114,11 +152,7 @@ public class BotMussurana : AIBehaviour
     {
         if(_targetObject == null)
         {
-            _currentState = State.WANDER;
-        }
-        else
-        {
-            owner.transform.position = Vector2.MoveTowards(owner.transform.position, _targetObject.transform.position, ownerMovement.speed * Time.deltaTime);
+            _currentState = State.IDLE;
         }
     }
 
