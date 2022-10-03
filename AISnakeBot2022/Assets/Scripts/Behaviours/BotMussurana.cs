@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "AIBehaviours/BotMussuna")]
@@ -23,25 +24,14 @@ public class BotMussurana : AIBehaviour
     {
         base.Init(own, ownMove);
         _moveDirection = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        ownerMovement.StartCoroutine(UpdateDirEveryXSeconds(0));
     }
 
     //seria interessante ter um controlador com o colisor que define o mundo pra poder gerar pontos dentro desse colisor
     public override void Execute()
     {
-        //MoveForward();
         GetNearbyObjects();
         BotController();
-        //COMENDO
-        //FUGINDO
-        //ANDANDO ALEATORIAMENTE
-        //ATACAR
-    }
-
-    //ia basica, move, muda de direcao e move
-    private void MoveForward()
-    {
-        //MouseRotationSnake();
-        //owner.transform.position = Vector2.MoveTowards(owner.transform.position, Camera.main.ScreenToWorldPoint(Input.mousePosition), ownerMovement.speed * Time.deltaTime);
     }
 
     private void GetNearbyObjects()
@@ -71,9 +61,14 @@ public class BotMussurana : AIBehaviour
     {
         owner.transform.position = Vector2.MoveTowards(owner.transform.position, _moveDirection, ownerMovement.speed * Time.deltaTime);
 
-        if(IsInDanger())
+        if(IsInDanger() && _currentState != State.RUNNING)
         {
-            Run();
+            ChangeStateAsync(0, State.RUNNING);
+        }
+
+        if(IsCritical())
+        {
+            Dash();
         }
 
         if(_currentState == State.WANDER)
@@ -89,27 +84,43 @@ public class BotMussurana : AIBehaviour
         }
         else if(_currentState == State.IDLE)
         {
-            _currentState = State.WANDER;
-            _moveDirection = _moveDirection = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            ChangeStateAsync(0, State.WANDER);
+            ownerMovement.StartCoroutine(UpdateDirEveryXSeconds(6));
         }
+        else if(_currentState == State.RUNNING)
+        {
+            Run();
 
+            if(!IsInDanger())
+            {
+                ChangeStateAsync(2000, State.IDLE);
+            }
+        }
+    }
+
+    private async Task ChangeStateAsync(int delay, State newState)
+    {
+        await Task.Delay(delay);
+        _currentState = newState;
     }
 
     private void Run()
     {
-        Debug.Log("RUN");
-
-        Vector3 vector = _enemyObject.gameObject.transform.position - owner.transform.position;
-        _moveDirection = -vector;
-        Debug.DrawRay(owner.transform.position , -vector, Color.blue, 1);
-        //_currentState = State.RUNNING;
+        if(_enemyObject != null)
+        {
+            Vector3 vector = _enemyObject.gameObject.transform.position - owner.transform.position;
+            _moveDirection = -vector;
+            Debug.DrawRay(owner.transform.position , -vector, Color.blue, 0.1f);
+        }
+        //escolher o inimigo mais proximo e CORRERRRR!!!!!!!
+        //se tiver MUITO PERTO usar o boost
     }
 
     private bool IsInDanger()
     {
         foreach(GameObject opponent in _opponentsList)
         {
-            if(Vector3.Distance(opponent.transform.position, owner.transform.position) < 8)
+            if(Vector3.Distance(opponent.transform.position, owner.transform.position) < 6)
             {
                 _enemyObject = opponent.gameObject.transform;
                 return true;
@@ -117,6 +128,35 @@ public class BotMussurana : AIBehaviour
         }
 
         return false;
+    }
+
+    private bool IsCritical()
+    {
+        foreach(GameObject opponent in _opponentsList)
+        {
+            if(Vector3.Distance(opponent.transform.position, owner.transform.position) < 2)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void Dash()
+    {
+        if (ownerMovement.bodyParts.Count > 2)
+        {
+            Destroy(ownerMovement.bodyParts[ownerMovement.bodyParts.Count - 1].gameObject);
+            Destroy(ownerMovement.bodyParts[ownerMovement.bodyParts.Count - 1]);
+            ownerMovement.bodyParts.RemoveAt(ownerMovement.bodyParts.Count - 1);
+            int nParts = ownerMovement.head.GetComponent<SnakeMovement>().bodyParts.Count;
+            ownerMovement.gameObject.GetComponent<SpriteRenderer>().sortingOrder = nParts;
+            ownerMovement.Eyes.GetComponent<SpriteRenderer>().sortingOrder = nParts+1;
+
+            ownerMovement.isRunning = true;
+            ownerMovement.speed = 10;
+        }
     }
 
     private void GetOrb()
@@ -145,7 +185,7 @@ public class BotMussurana : AIBehaviour
         direction.z = 0.0f;
         _targetObject = nearestOrb.transform;
         _moveDirection = _targetObject.transform.position;
-        _currentState = State.EATING;
+        ChangeStateAsync(0, State.EATING);
     }
 
     private void VerifyTarget()
@@ -160,21 +200,26 @@ public class BotMussurana : AIBehaviour
     {
         yield return new WaitForSeconds(x);
 
-        /*ownerMovement.StopCoroutine(UpdateDirEveryXSeconds(x));
+        ownerMovement.StopCoroutine(UpdateDirEveryXSeconds(x));
         randomPoint = new Vector3(
                 Random.Range(
-                    Random.Range(owner.transform.position.x - 10, owner.transform.position.x - 5),
-                    Random.Range(owner.transform.position.x + 5, owner.transform.position.x + 10)
+                    Random.Range(owner.transform.position.x - 30, owner.transform.position.x - 30),
+                    Random.Range(owner.transform.position.x + 30, owner.transform.position.x + 30)
                 ),
                 Random.Range(
-                    Random.Range(owner.transform.position.y - 10, owner.transform.position.y - 5),
-                    Random.Range(owner.transform.position.y + 5, owner.transform.position.y + 10)
+                    Random.Range(owner.transform.position.y - 30, owner.transform.position.y - 30),
+                    Random.Range(owner.transform.position.y + 30, owner.transform.position.y + 30)
                 ),
                 0
             );
         direction = randomPoint - owner.transform.position;
         direction.z = 0.0f;
 
-        ownerMovement.StartCoroutine(UpdateDirEveryXSeconds(x));*/
+        _moveDirection = direction;
+
+        if (_currentState == State.WANDER)
+        {
+            ownerMovement.StartCoroutine(UpdateDirEveryXSeconds(x));
+        }
     }
 }
