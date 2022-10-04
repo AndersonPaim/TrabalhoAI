@@ -203,12 +203,12 @@ public class BotMussurana : AIBehaviour
         ownerMovement.StopCoroutine(UpdateDirEveryXSeconds(x));
         randomPoint = new Vector3(
                 Random.Range(
-                    Random.Range(owner.transform.position.x - 30, owner.transform.position.x - 30),
-                    Random.Range(owner.transform.position.x + 30, owner.transform.position.x + 30)
+                    Random.Range(-45, 45),
+                    Random.Range(-45, 45)
                 ),
                 Random.Range(
-                    Random.Range(owner.transform.position.y - 30, owner.transform.position.y - 30),
-                    Random.Range(owner.transform.position.y + 30, owner.transform.position.y + 30)
+                    Random.Range(-45, 45),
+                    Random.Range(-45, 45)
                 ),
                 0
             );
