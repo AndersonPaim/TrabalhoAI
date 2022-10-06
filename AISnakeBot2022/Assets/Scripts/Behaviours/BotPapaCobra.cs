@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "AIBehaviours/BotMussuna")]
-public class BotMussurana : AIBehaviour
+[CreateAssetMenu(menuName = "AIBehaviours/BotPapaCobra")]
+public class BotPapaCobra : AIBehaviour
 {
     private enum State
     {
@@ -23,6 +23,9 @@ public class BotMussurana : AIBehaviour
     public override void Init(GameObject own, SnakeMovement ownMove)
     {
         base.Init(own, ownMove);
+        owner.gameObject.transform.parent.gameObject.name = "PAPA COBRA";
+        ownerMovement.head.gameObject.GetComponent<SpriteRenderer>().color = Color.black;
+        ownerMovement.head.transform.GetChild(0).gameObject.GetComponent<SpriteRenderer>().color = Color.red;
         _moveDirection = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         ownerMovement.StartCoroutine(UpdateDirEveryXSeconds(0));
     }
@@ -227,8 +230,17 @@ public class BotMussurana : AIBehaviour
     {
         if(_targetObject == null)
         {
-            _currentState = State.WANDER;
-            ownerMovement.StartCoroutine(UpdateDirEveryXSeconds(6));
+            ChangeStateAsync(0, State.WANDER);
+            ownerMovement.StartCoroutine(UpdateDirEveryXSeconds(0));
+            ChangeBodyColor();
+        }
+    }
+
+    private void ChangeBodyColor()
+    {
+        for (int i = 0; i < ownerMovement.bodyParts.Count; i++)
+        {
+            ownerMovement.head.GetComponent<SnakeMovement>().bodyParts[i].gameObject.GetComponent<SpriteRenderer>().color = Color.black;
         }
     }
 
@@ -236,26 +248,28 @@ public class BotMussurana : AIBehaviour
     {
         yield return new WaitForSeconds(x);
 
-        ownerMovement.StopCoroutine(UpdateDirEveryXSeconds(x));
-        randomPoint = new Vector3(
-                Random.Range(
-                    Random.Range(-45, 45),
-                    Random.Range(-45, 45)
-                ),
-                Random.Range(
-                    Random.Range(-45, 45),
-                    Random.Range(-45, 45)
-                ),
-                0
-            );
-        direction = randomPoint - owner.transform.position;
-        direction.z = 0.0f;
-
-        _moveDirection = direction;
+        Debug.Log("NEW DIR");
 
         if (_currentState == State.WANDER)
         {
-            ownerMovement.StartCoroutine(UpdateDirEveryXSeconds(x));
+            ownerMovement.StopCoroutine(UpdateDirEveryXSeconds(x));
+            randomPoint = new Vector3(
+                    Random.Range(
+                        Random.Range(-45, 45),
+                        Random.Range(-45, 45)
+                    ),
+                    Random.Range(
+                        Random.Range(-45, 45),
+                        Random.Range(-45, 45)
+                    ),
+                    0
+                );
+            direction = randomPoint - owner.transform.position;
+            direction.z = 0.0f;
+
+            _moveDirection = direction;
+
+            ownerMovement.StartCoroutine(UpdateDirEveryXSeconds(6));
         }
     }
 }

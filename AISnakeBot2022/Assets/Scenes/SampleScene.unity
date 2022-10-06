@@ -554,8 +554,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   snakes: []
   behaviors:
-  - {fileID: 11400000, guid: d44227250f34c7d499d6b18cdb5af597, type: 2}
   - {fileID: 11400000, guid: 66cd5294d179eb04bb909d92843609e6, type: 2}
+  - {fileID: 11400000, guid: 36358d33852ccdb40b40556ee2e0fb6e, type: 2}
   - {fileID: 11400000, guid: 160418bca43e39d4c85ea4b4c53179e4, type: 2}
   OrbsPerSnake: 1
   NumberSnakes: 5
