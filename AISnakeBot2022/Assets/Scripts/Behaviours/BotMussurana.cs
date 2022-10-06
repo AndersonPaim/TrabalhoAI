@@ -8,14 +8,14 @@ public class BotMussurana : AIBehaviour
 {
     private enum State
     {
-        IDLE, EATING, RUNNING, WANDER
+        EATING, RUNNING, WANDER
     }
 
     private Collider2D[] _collidersList;
 
     private List<GameObject> _opponentsList = new List<GameObject>();
     private List<GameObject> _orbsList = new List<GameObject>();
-    private State _currentState = State.WANDER;
+    private State _currentState = State.EATING;
     private Transform _targetObject;
     private Transform _enemyObject;
     private Vector3 _moveDirection;
@@ -59,42 +59,24 @@ public class BotMussurana : AIBehaviour
 
     private void BotController()
     {
-        owner.transform.position = Vector2.MoveTowards(owner.transform.position, _moveDirection, ownerMovement.speed * Time.deltaTime);
+        Move();
 
         if(IsInDanger() && _currentState != State.RUNNING)
         {
             ChangeStateAsync(0, State.RUNNING);
         }
 
-        if(IsCritical())
-        {
-            Dash();
-        }
-
         if(_currentState == State.WANDER)
         {
-            if(_orbsList.Count > 0)
-            {
-                GetOrb();
-            }
+            WanderState();
         }
         else if(_currentState == State.EATING)
         {
-            VerifyTarget();
-        }
-        else if(_currentState == State.IDLE)
-        {
-            ChangeStateAsync(0, State.WANDER);
-            ownerMovement.StartCoroutine(UpdateDirEveryXSeconds(6));
+            EatingState();
         }
         else if(_currentState == State.RUNNING)
         {
-            Run();
-
-            if(!IsInDanger())
-            {
-                ChangeStateAsync(2000, State.IDLE);
-            }
+            RunningState();
         }
     }
 
@@ -104,7 +86,25 @@ public class BotMussurana : AIBehaviour
         _currentState = newState;
     }
 
-    private void Run()
+    private void Move()
+    {
+        owner.transform.position = Vector2.MoveTowards(owner.transform.position, _moveDirection, ownerMovement.speed * Time.deltaTime);
+    }
+
+    private void WanderState()
+    {
+        if(_orbsList.Count > 0)
+        {
+            GetOrb();
+        }
+    }
+
+    private void EatingState()
+    {
+        VerifyTarget();
+    }
+
+    private void RunningState()
     {
         if(_enemyObject != null)
         {
@@ -112,8 +112,17 @@ public class BotMussurana : AIBehaviour
             _moveDirection = -vector;
             Debug.DrawRay(owner.transform.position , -vector, Color.blue, 0.1f);
         }
-        //escolher o inimigo mais proximo e CORRERRRR!!!!!!!
-        //se tiver MUITO PERTO usar o boost
+
+        if(IsCritical())
+        {
+            Dash();
+        }
+
+        if(!IsInDanger())
+        {
+            ChangeStateAsync(2000, State.WANDER);
+            ownerMovement.StartCoroutine(UpdateDirEveryXSeconds(6));
+        }
     }
 
     private bool IsInDanger()
@@ -192,7 +201,8 @@ public class BotMussurana : AIBehaviour
     {
         if(_targetObject == null)
         {
-            _currentState = State.IDLE;
+            _currentState = State.WANDER;
+            ownerMovement.StartCoroutine(UpdateDirEveryXSeconds(6));
         }
     }
 
