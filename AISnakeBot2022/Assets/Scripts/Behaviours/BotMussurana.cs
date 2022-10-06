@@ -27,7 +27,6 @@ public class BotMussurana : AIBehaviour
         ownerMovement.StartCoroutine(UpdateDirEveryXSeconds(0));
     }
 
-    //seria interessante ter um controlador com o colisor que define o mundo pra poder gerar pontos dentro desse colisor
     public override void Execute()
     {
         GetNearbyObjects();
@@ -47,12 +46,39 @@ public class BotMussurana : AIBehaviour
             {
                 if(owner.gameObject.transform.parent != collider.gameObject.transform.parent)
                 {
-                    _opponentsList.Add(collider.gameObject);
+                    if(_opponentsList.Count > 0)
+                    {
+                        AddOpponent(collider.gameObject);
+                    }
+                    else
+                    {
+                        _opponentsList.Add(collider.gameObject);
+                    }
                 }
             }
             else if(collider.tag == "Orb")
             {
                 _orbsList.Add(collider.gameObject);
+            }
+        }
+    }
+
+    private void AddOpponent(GameObject collider)
+    {
+        foreach (GameObject obj in _opponentsList)
+        {
+            if (obj.transform.parent == collider.transform.parent)
+            {
+                float oldDistance = Vector3.Distance(obj.transform.position, owner.transform.position);
+                float newDistance = Vector3.Distance(collider.transform.position, owner.transform.position);
+
+                if (newDistance < oldDistance)
+                {
+                    _opponentsList.Remove(obj);
+                    _opponentsList.Add(collider.gameObject);
+                }
+
+                break;
             }
         }
     }
